@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getJson } from "./lib/api.js";
-import { filterAndSortRoutes } from "./lib/routes.js";
+import { filterAndSortRoutes, toggleComparedRoute } from "./lib/routes.js";
 
 const initials = (name = "") => name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
@@ -21,6 +21,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState("");
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailStatus, setDetailStatus] = useState("idle");
+  const [comparedIds, setComparedIds] = useState([]);
 
   async function loadRoutes() {
     setStatus("loading");
@@ -61,6 +62,7 @@ export default function App() {
     [routes, origin, destination, query, sort, order],
   );
   const selectedRoute = visibleRoutes.find((route) => route.id === selectedId) ?? visibleRoutes[0] ?? null;
+  const comparedRoutes = comparedIds.map((id) => routes.find((route) => route.id === id)).filter(Boolean);
 
   useEffect(() => {
     if (!selectedRoute?.id) {
@@ -93,6 +95,10 @@ export default function App() {
     ? Math.round(routes.reduce((sum, route) => sum + Number(route.duration_min || 0), 0) / routes.length)
     : 0;
   const fastest = [...routes].sort((a, b) => Number(a.duration_min) - Number(b.duration_min))[0];
+
+  function toggleCompare(route) {
+    setComparedIds((current) => toggleComparedRoute(current, route.id, 3));
+  }
 
   function clearFilters() {
     setOrigin("");
@@ -184,7 +190,20 @@ export default function App() {
             <div className="timeline-title">YOUR STOP SEQUENCE <span>{detail.stops?.length ?? 0} STOPS</span></div>
             <div className="timeline">{(detail.stops ?? []).map((stop, index) => <div className="timeline-stop" key={stop + index}><span className={index === 0 || index === detail.stops.length - 1 ? "timeline-dot endpoint" : "timeline-dot"} /><div><strong>{stop}</strong><small>{index === 0 ? "Starting point" : index === detail.stops.length - 1 ? "Destination" : "Along the route"}</small></div></div>)}</div>
             <p className="detail-service">{detail.service_label || "Illustrative sample service"}</p>
+            <button type="button" className={comparedIds.includes(detail.id) ? "compare-button active" : "compare-button"} onClick={() => toggleCompare(detail)} aria-pressed={comparedIds.includes(detail.id)} disabled={!comparedIds.includes(detail.id) && comparedIds.length >= 3}>
+              {comparedIds.includes(detail.id) ? "✓ Added to comparison" : "＋ Add to comparison"}
+            </button>
+            {comparedIds.length >= 3 && !comparedIds.includes(detail.id) && <p className="compare-hint">You can compare up to three routes. Remove one to add another.</p>}
           </> : <div className="empty-detail">Select a route to inspect its stops.</div>}
+          {comparedRoutes.length > 0 && <section className="comparison-box" aria-label="Route comparison">
+            <div className="comparison-heading"><strong>Compare routes</strong><button type="button" className="text-button" onClick={() => setComparedIds([])}>Clear</button></div>
+            <p>Side-by-side sample details · {comparedRoutes.length}/3 selected</p>
+            {comparedRoutes.map((route) => <div className="comparison-row" key={route.id}>
+              <div><strong>{route.name}</strong><small>{route.origin} → {route.destination}</small></div>
+              <span>{route.duration_min} min</span><span>Every {route.frequency_min} min</span>
+              <button type="button" aria-label={"Remove " + route.name + " from comparison"} onClick={() => setComparedIds((current) => current.filter((id) => id !== route.id))}>×</button>
+            </div>)}
+          </section>}
           <div className="detail-disclaimer"><strong>Prototype notice</strong><p>Stops, timings and service frequencies are illustrative. Confirm actual services with the relevant transport operator.</p></div>
         </aside>
       </section>

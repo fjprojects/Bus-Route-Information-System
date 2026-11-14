@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { filterAndSortRoutes } from "../src/lib/routes.js";
+import { filterAndSortRoutes, toggleComparedRoute } from "../src/lib/routes.js";
 
 const routes = [
   { id: "blue", name: "Blue Line", origin: "Central Station", destination: "Tech Park", stops: ["Market Square"], duration_min: 22, frequency_min: 12 },
@@ -34,4 +34,15 @@ test("does not mutate the source array", () => {
 
 test("empty filters return all routes, fastest first", () => {
   assert.deepEqual(filterAndSortRoutes(routes).map((r) => r.id), ["green", "blue", "orange"]);
+});
+
+
+test("route comparison toggles IDs and enforces a maximum of three", () => {
+  const first = toggleComparedRoute([], "blue");
+  const second = toggleComparedRoute(first, "green");
+  const third = toggleComparedRoute(second, "orange");
+  assert.deepEqual(third, ["blue", "green", "orange"]);
+  assert.deepEqual(toggleComparedRoute(third, "purple"), third);
+  assert.deepEqual(toggleComparedRoute(third, "green"), ["blue", "orange"]);
+  assert.deepEqual(first, ["blue"]);
 });

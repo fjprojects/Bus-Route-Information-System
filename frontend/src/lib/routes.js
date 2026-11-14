@@ -41,3 +41,11 @@ export function filterAndSortRoutes(routes, {
     return comparison * direction || String(left.name ?? "").localeCompare(String(right.name ?? ""));
   });
 }
+
+
+export function toggleComparedRoute(ids = [], routeId, limit = 3) {
+  if (!routeId) return ids;
+  if (ids.includes(routeId)) return ids.filter((id) => id !== routeId);
+  if (ids.length >= limit) return ids;
+  return [...ids, routeId];
+}
