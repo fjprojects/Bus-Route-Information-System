@@ -1,39 +1,85 @@
 # Bus Route Information System
 
-A **React + Django** starter for a public-transport route assistant.
+**Wayfinder** is a route-discovery product concept built with React and Django. It explores a clear journey-planning workflow with origin/destination filters, route comparisons, stop sequences and a responsive interface.
 
-## Stack
-- React 19.3 + Vite 8 frontend
-- Django 6.1 JSON API
-- Vite proxies local `/api` calls to Django on port 8000
+> **Data status:** The included network is fictional sample data. This project is not connected to a transport operator, official timetable, GPS, GTFS feed or live vehicle service.
 
-## Structure
-- `frontend/` — React application and preserved earlier prototype at `public/prototype.html`
-- `backend/` — Django project and JSON endpoints
+## Product capabilities
+- Search sample routes by line, origin, destination or stop name.
+- Filter by origin and destination, then sort by journey duration or sample frequency.
+- Inspect stop-by-stop route details.
+- Responsive route-planning workspace with API loading, empty and error states.
+- Django-backed route records, seed command and query-filtered JSON endpoints.
+- Original concept demo preserved at frontend/public/prototype.html.
+
+## Technology
+| Layer | Stack |
+|---|---|
+| Frontend | React 19.3, Vite 8.3, JavaScript |
+| Backend | Django 6.1, Python |
+| Data | Django ORM, SQLite locally, PostgreSQL via DATABASE_URL |
+| API | JSON endpoints |
+| Deployment | Vercel frontend, Python web host for API |
 
 ## Run locally
 
-### Terminal 1 — Django API
+### 1. Django API
 ```bash
 cd backend
 python -m venv .venv
-# Windows PowerShell: .venv\\Scripts\\Activate.ps1
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 # macOS/Linux: source .venv/bin/activate
 python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py seed_demo_data
 python manage.py runserver 8000
 ```
 
-### Terminal 2 — React frontend
+### 2. React frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Open the Vite URL printed in the terminal (normally `http://localhost:5173`). The React page fetches `GET /api/health/` and `GET /api/routes/`.
+Open the Vite URL shown in the terminal (normally http://localhost:5173). Vite proxies /api requests to Django on port 8000.
 
-## Production configuration
-Set `VITE_API_BASE_URL` in `frontend/.env.local` to the deployed Django backend URL before building. On the backend configure `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=false`, `DJANGO_ALLOWED_HOSTS`, and `CORS_ALLOWED_ORIGINS`.
+## API reference
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | /api/health/ | Health and framework version |
+| GET | /api/routes/ | List demonstration routes |
+| GET | /api/routes/?origin=Central%20Station | Filter by origin |
+| GET | /api/routes/?destination=University | Filter by destination |
+| GET | /api/routes/?q=museum | Search route, origin and destination |
 
-## Data limitations
-All route names, stops, frequencies and journey times are fictional sample data. This API is not connected to a transport operator, official timetable, GPS or live vehicle feed. The earlier Wayfinder page is preserved separately; its UI has not yet been rewritten as React components.
+The routes endpoint returns a JSON object containing count, items, source and disclaimer.
+
+## Quality checks
+```bash
+cd backend
+python manage.py check
+python manage.py test
+```
+```bash
+cd frontend
+npm run build
+```
+
+GitHub Actions runs these checks on pushes to main and pull requests.
+
+## Deployment notes
+- Set the Vercel project root to frontend, build with npm run build and use dist as output.
+- Set VITE_API_BASE_URL to the deployed Django API origin when building the frontend.
+- Deploy backend as a Python web service with gunicorn config.wsgi:application.
+- Configure DJANGO_SECRET_KEY, DJANGO_DEBUG=false, DJANGO_ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS and a persistent PostgreSQL DATABASE_URL.
+- Run python manage.py migrate and python manage.py seed_demo_data after deployment.
+
+## Roadmap
+1. Integrate licensed and verified timetable data for a defined region.
+2. Add multi-leg journey planning and interchange rules.
+3. Add service alerts only when an authoritative operator feed is available.
+4. Add source timestamps, feed-health monitoring and stale-data states.
+5. Validate accessibility and usability with public-transport users.
+
+No actual journey should be planned using the fictional values in this prototype.
