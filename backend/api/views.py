@@ -34,11 +34,20 @@ def routes(request):
     if destination:
         queryset = queryset.filter(destination__iexact=destination)
     if query:
-        queryset = queryset.filter(
+        searchable_routes = queryset.filter(
             Q(name__icontains=query)
             | Q(origin__icontains=query)
             | Q(destination__icontains=query)
         )
+        matched_ids = set(searchable_routes.values_list("id", flat=True))
+        # Stop names are stored as a JSON array in this small demonstration dataset.
+        # A normalized RouteStop table should replace this scan for large operator feeds.
+        if len(query) >= 2:
+            matched_ids.update(
+                route.id for route in queryset
+                if any(query.casefold() in stop.casefold() for stop in route.stops)
+            )
+        queryset = queryset.filter(id__in=matched_ids)
 
     items = [
         {
