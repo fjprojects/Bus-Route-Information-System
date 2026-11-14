@@ -1,70 +1,68 @@
 from django.test import TestCase
-from api.models import ExerciseReference, Measurement, Route
+
+from .models import Route
 
 
 class RouteApiTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         Route.objects.create(
-            id="blue-line", name="Blue Line", origin="Central Station",
-            destination="Tech Park", stops=["Central Station", "University", "Tech Park"],
-            duration_min=22, frequency_min=12,
+            id="blue-line",
+            name="Blue Line",
+            origin="Central Station",
+            destination="Tech Park",
+            stops=["Central Station", "Market Square", "University", "Tech Park"],
+            duration_min=22,
+            frequency_min=12,
+            service_label="Illustrative direct service",
         )
         Route.objects.create(
-            id="green-line", name="Green Line", origin="Central Station",
-            destination="University", stops=["Central Station", "Museum", "University"],
-            duration_min=16, frequency_min=15,
+            id="green-line",
+            name="Green Line",
+            origin="Central Station",
+            destination="University",
+            stops=["Central Station", "Museum", "University"],
+            duration_min=16,
+            frequency_min=15,
+            service_label="Illustrative direct service",
         )
 
-    def test_health_endpoint(self):
+    def test_health_endpoint_identifies_this_project(self):
         response = self.client.get("/api/health/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
-        self.assertEqual(response.json()["framework"], "Django")
+        self.assertEqual(response.json()["project"], "Bus Route Information System")
+        self.assertEqual(response.json()["services"], ["routes"])
 
-    def test_routes_endpoint_returns_records(self):
+    def test_routes_endpoint_returns_ordered_records_and_data_notice(self):
         response = self.client.get("/api/routes/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["count"], 2)
-        self.assertEqual(response.json()["items"][0]["id"], "green-line")
+        payload = response.json()
+        self.assertEqual(payload["count"], 2)
+        self.assertEqual(payload["items"][0]["id"], "green-line")
+        self.assertIn("fictional sample data", payload["disclaimer"])
 
-    def test_origin_and_destination_filters(self):
-        response = self.client.get("/api/routes/?origin=Central%20Station&destination=Tech%20Park")
+    def test_origin_and_destination_filters_are_case_insensitive(self):
+        response = self.client.get("/api/routes/?origin=central%20station&destination=TECH%20PARK")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([item["id"] for item in response.json()["items"]], ["blue-line"])
+        self.assertEqual([row["id"] for row in response.json()["items"]], ["blue-line"])
 
-    def test_intermediate_stop_search(self):
+    def test_search_matches_route_name(self):
+        response = self.client.get("/api/routes/?q=blue")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["id"] for row in response.json()["items"]], ["blue-line"])
+
+    def test_search_matches_intermediate_stop(self):
         response = self.client.get("/api/routes/?q=Museum")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([item["id"] for item in response.json()["items"]], ["green-line"])
+        self.assertEqual([row["id"] for row in response.json()["items"]], ["green-line"])
 
-
-class PortfolioDemoApiTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        ExerciseReference.objects.create(
-            id="ankle-mobility", name="Ankle mobility",
-            category="Gentle ankle movement", description="Illustrative reference.",
-            professional_note="Only under qualified professional guidance.",
-        )
-        Measurement.objects.create(
-            date="Sample 01", left_step_time="0.600", right_step_time="0.620",
-            walking_speed="0.780", balance_score="76.00",
-        )
-
-    def test_exercise_catalogue_endpoint(self):
-        response = self.client.get("/api/exercises/")
+    def test_unknown_search_returns_empty_collection(self):
+        response = self.client.get("/api/routes/?q=not-a-place")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["project"], "AI Recovery Assistant")
-        self.assertEqual(response.json()["items"][0]["id"], "ankle-mobility")
-        self.assertIn("professional_note", response.json()["items"][0])
+        self.assertEqual(response.json()["items"], [])
+        self.assertEqual(response.json()["count"], 0)
 
-    def test_measurement_endpoint_returns_numeric_values(self):
-        response = self.client.get("/api/measurements/")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["project"], "GaitGuardian")
-        self.assertIsInstance(response.json()["items"][0]["walking_speed"], float)
-
-    def test_measurements_endpoint_rejects_post(self):
-        response = self.client.post("/api/measurements/", data={})
+    def test_write_methods_are_not_allowed(self):
+        response = self.client.post("/api/routes/", data={})
         self.assertEqual(response.status_code, 405)
