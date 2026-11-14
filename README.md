@@ -21,6 +21,7 @@ The frontend is hosted on Vercel. The Django API is hosted as a Docker web servi
 - Paginated, validated JSON responses with structured errors.
 - Database-aware health reporting and read-only route access.
 - Responsive route-planning interface with loading, empty and error states.
+- Compare up to three routes side by side by sample duration and service frequency; comparisons are kept in the current browser session.
 - Original concept page preserved at `frontend/public/prototype.html`.
 
 ## Technology
