@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getJson } from "./lib/api.js";
+import { filterAndSortRoutes } from "./lib/routes.js";
 
 const initials = (name = "") => name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
@@ -34,17 +35,10 @@ export default function App() {
 
   const origins = useMemo(() => [...new Set(routes.map((route) => route.origin))].sort(), [routes]);
   const destinations = useMemo(() => [...new Set(routes.map((route) => route.destination))].sort(), [routes]);
-  const visibleRoutes = useMemo(() => {
-    const filtered = routes.filter((route) => {
-      const matchesOrigin = !origin || route.origin === origin;
-      const matchesDestination = !destination || route.destination === destination;
-      const haystack = [route.name, route.origin, route.destination, ...(route.stops ?? [])].join(" ").toLowerCase();
-      return matchesOrigin && matchesDestination && haystack.includes(query.toLowerCase().trim());
-    });
-    return filtered.sort((a, b) => sort === "frequency"
-      ? a.frequency_min - b.frequency_min
-      : a.duration_min - b.duration_min);
-  }, [routes, origin, destination, query, sort]);
+  const visibleRoutes = useMemo(
+    () => filterAndSortRoutes(routes, { origin, destination, query, sort }),
+    [routes, origin, destination, query, sort],
+  );
 
   const selectedRoute = visibleRoutes.find((route) => route.id === selectedId) ?? visibleRoutes[0] ?? null;
   const averageDuration = routes.length
