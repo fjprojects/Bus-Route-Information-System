@@ -8,16 +8,22 @@ const routes = [
   { id: "orange", name: "Orange Line", origin: "Riverside", destination: "Tech Park", stops: ["Market Square"], duration_min: 25, frequency_min: 18 },
 ];
 
-test("filters by origin and destination", () => {
-  assert.deepEqual(filterAndSortRoutes(routes, { origin: "Central Station", destination: "Tech Park" }).map((r) => r.id), ["blue"]);
+test("filters by origin and destination without case sensitivity", () => {
+  assert.deepEqual(filterAndSortRoutes(routes, { origin: "central station", destination: "TECH PARK" }).map((r) => r.id), ["blue"]);
 });
 
-test("search includes intermediate stops", () => {
+test("search includes intermediate stops and route identifiers", () => {
   assert.deepEqual(filterAndSortRoutes(routes, { query: "museum" }).map((r) => r.id), ["green"]);
+  assert.deepEqual(filterAndSortRoutes(routes, { query: "ORANGE" }).map((r) => r.id), ["orange"]);
 });
 
 test("sorts by frequency when requested", () => {
   assert.deepEqual(filterAndSortRoutes(routes, { sort: "frequency" }).map((r) => r.id), ["blue", "green", "orange"]);
+});
+
+test("supports descending numeric and alphabetical order", () => {
+  assert.deepEqual(filterAndSortRoutes(routes, { sort: "duration", order: "desc" }).map((r) => r.id), ["orange", "blue", "green"]);
+  assert.deepEqual(filterAndSortRoutes(routes, { sort: "name" }).map((r) => r.id), ["blue", "green", "orange"]);
 });
 
 test("does not mutate the source array", () => {

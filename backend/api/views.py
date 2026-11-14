@@ -53,21 +53,31 @@ def health(request):
 
 @require_GET
 def route_locations(request):
-    locations = set()
+    origins = set()
+    destinations = set()
+    stops = set()
     for route in Route.objects.only("origin", "destination", "stops"):
-        locations.add(route.origin)
-        locations.add(route.destination)
-        locations.update(
+        if route.origin:
+            origins.add(route.origin)
+        if route.destination:
+            destinations.add(route.destination)
+        stops.update(
             stop.strip()
             for stop in (route.stops or [])
             if isinstance(stop, str) and stop.strip()
         )
 
-    ordered = sorted(locations, key=str.casefold)
+    ordered_origins = sorted(origins, key=str.casefold)
+    ordered_destinations = sorted(destinations, key=str.casefold)
+    ordered_stops = sorted(stops, key=str.casefold)
+    locations = sorted(origins | destinations | stops, key=str.casefold)
     return JsonResponse({
         "project": PROJECT,
-        "count": len(ordered),
-        "locations": ordered,
+        "count": len(locations),
+        "origins": ordered_origins,
+        "destinations": ordered_destinations,
+        "stops": ordered_stops,
+        "locations": locations,
         "source": "fictional demonstration network",
         "disclaimer": DISCLAIMER,
     })

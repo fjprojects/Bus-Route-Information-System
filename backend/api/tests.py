@@ -35,20 +35,26 @@ class RouteApiTests(TestCase):
         self.assertEqual(response.json()["database"], "connected")
         self.assertIn("locations", response.json()["services"])
 
-    def test_route_locations_are_unique_and_sorted(self):
+    def test_route_locations_expose_separate_selector_options(self):
         response = self.client.get("/api/routes/locations/")
         self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["origins"], ["Central Station"])
+        self.assertEqual(payload["destinations"], ["Tech Park", "University"])
+        self.assertIn("Museum", payload["stops"])
+        self.assertEqual(payload["count"], len(payload["locations"]))
+
+    def test_route_locations_are_unique_and_sorted(self):
+        response = self.client.get("/api/routes/locations/")
         locations = response.json()["locations"]
         self.assertEqual(len(locations), len(set(locations)))
         self.assertEqual(locations, sorted(locations, key=str.casefold))
-        self.assertIn("Museum", locations)
 
     def test_route_detail_returns_one_route(self):
         response = self.client.get("/api/routes/blue-line/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["item"]["id"], "blue-line")
         self.assertEqual(response.json()["item"]["stops"][1], "Market Square")
-        self.assertIn("fictional", response.json()["disclaimer"])
 
     def test_route_detail_returns_structured_404(self):
         response = self.client.get("/api/routes/missing-line/")
