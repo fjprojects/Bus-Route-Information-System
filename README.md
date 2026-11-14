@@ -17,8 +17,8 @@ The frontend is hosted on Vercel. The Django API is hosted as a Docker web servi
 - Search route names, origins, destinations and intermediate stops.
 - Filter by origin and destination with case-insensitive matching.
 - Sort by sample journey duration, sample service frequency or route name, in ascending or descending order.
-- Inspect each route's stop sequence and journey details.
-- Paginated, validated JSON responses with structured errors for invalid query parameters.
+- Retrieve distinct stop/location suggestions and individual route details.
+- Paginated, validated JSON responses with structured errors.
 - Database-aware health reporting and read-only route access.
 - Responsive route-planning interface with loading, empty and error states.
 - Original concept page preserved at `frontend/public/prototype.html`.
@@ -70,20 +70,21 @@ All endpoints are read-only and accept GET requests.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/api/health/` | Framework and database connectivity; returns HTTP 503 if the database is unavailable |
+| GET | `/api/health/` | Framework and database connectivity |
 | GET | `/api/routes/` | List demonstration routes |
 | GET | `/api/routes/?origin=Central%20Station` | Filter by origin |
 | GET | `/api/routes/?destination=University` | Filter by destination |
 | GET | `/api/routes/?q=museum` | Search route names, endpoints and intermediate stops |
 | GET | `/api/routes/?sort=frequency&order=desc` | Sort by duration, frequency or name |
+| GET | `/api/routes/locations/` | Return distinct origins, destinations and intermediate stops |
+| GET | `/api/routes/blue-line/` | Retrieve one route by its identifier |
 
 ### Pagination and validation
 
 - `page` is a positive integer (default `1`).
 - `page_size` is an integer from `1` to `100` (default `25`).
 - `count` reports the total number of matched routes; `items` contains only the requested page.
-- The `pagination` object includes page, page size, total items/pages and next/previous flags.
-- Invalid filters, sort modes, page values and oversized text parameters return HTTP 400 with a structured `error` object.
+- Invalid query values return HTTP 400 with a structured `error` object; missing route identifiers return HTTP 404.
 - `sort` accepts `duration`, `frequency` or `name`; `order` accepts `asc` or `desc`.
 
 Responses include the fictional-data source and disclaimer. Write methods are not enabled.

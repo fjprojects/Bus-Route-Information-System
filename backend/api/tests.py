@@ -33,12 +33,32 @@ class RouteApiTests(TestCase):
         self.assertEqual(response.json()["status"], "ok")
         self.assertEqual(response.json()["project"], "Bus Route Information System")
         self.assertEqual(response.json()["database"], "connected")
-        self.assertEqual(response.json()["services"], ["routes"])
+        self.assertIn("locations", response.json()["services"])
+
+    def test_route_locations_are_unique_and_sorted(self):
+        response = self.client.get("/api/routes/locations/")
+        self.assertEqual(response.status_code, 200)
+        locations = response.json()["locations"]
+        self.assertEqual(len(locations), len(set(locations)))
+        self.assertEqual(locations, sorted(locations, key=str.casefold))
+        self.assertIn("Museum", locations)
+
+    def test_route_detail_returns_one_route(self):
+        response = self.client.get("/api/routes/blue-line/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["item"]["id"], "blue-line")
+        self.assertEqual(response.json()["item"]["stops"][1], "Market Square")
+        self.assertIn("fictional", response.json()["disclaimer"])
+
+    def test_route_detail_returns_structured_404(self):
+        response = self.client.get("/api/routes/missing-line/")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["error"]["code"], "not_found")
 
     def test_routes_endpoint_returns_ordered_records_and_data_notice(self):
         response = self.client.get("/api/routes/")
-        self.assertEqual(response.status_code, 200)
         payload = response.json()
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(payload["count"], 2)
         self.assertEqual(payload["items"][0]["id"], "green-line")
         self.assertEqual(payload["pagination"]["total_items"], 2)

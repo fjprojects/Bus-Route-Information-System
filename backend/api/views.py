@@ -15,6 +15,19 @@ DISCLAIMER = (
 )
 
 
+def _route_payload(route):
+    return {
+        "id": route.id,
+        "name": route.name,
+        "origin": route.origin,
+        "destination": route.destination,
+        "stops": route.stops or [],
+        "duration_min": route.duration_min,
+        "frequency_min": route.frequency_min,
+        "service_label": route.service_label,
+    }
+
+
 @require_GET
 def health(request):
     try:
@@ -34,7 +47,48 @@ def health(request):
         "framework": "Django",
         "django_version": get_version(),
         "database": "connected",
-        "services": ["routes"],
+        "services": ["routes", "route-details", "locations"],
+    })
+
+
+@require_GET
+def route_locations(request):
+    locations = set()
+    for route in Route.objects.only("origin", "destination", "stops"):
+        locations.add(route.origin)
+        locations.add(route.destination)
+        locations.update(
+            stop.strip()
+            for stop in (route.stops or [])
+            if isinstance(stop, str) and stop.strip()
+        )
+
+    ordered = sorted(locations, key=str.casefold)
+    return JsonResponse({
+        "project": PROJECT,
+        "count": len(ordered),
+        "locations": ordered,
+        "source": "fictional demonstration network",
+        "disclaimer": DISCLAIMER,
+    })
+
+
+@require_GET
+def route_detail(request, route_id):
+    route = Route.objects.filter(pk=route_id).first()
+    if route is None:
+        return error_response(
+            "No route exists with the requested identifier.",
+            parameter="route_id",
+            code="not_found",
+            status=404,
+        )
+
+    return JsonResponse({
+        "project": PROJECT,
+        "item": _route_payload(route),
+        "source": "fictional demonstration network",
+        "disclaimer": DISCLAIMER,
     })
 
 
@@ -92,19 +146,7 @@ def routes(request):
     sort_field = sort_fields[sort]
     prefix = "-" if order == "desc" else ""
     queryset = queryset.order_by(f"{prefix}{sort_field}", "name")
-    records = [
-        {
-            "id": route.id,
-            "name": route.name,
-            "origin": route.origin,
-            "destination": route.destination,
-            "stops": route.stops,
-            "duration_min": route.duration_min,
-            "frequency_min": route.frequency_min,
-            "service_label": route.service_label,
-        }
-        for route in queryset
-    ]
+    records = [_route_payload(route) for route in queryset]
 
     page_items, pagination, error = paginate_items(request, records)
     if error:
